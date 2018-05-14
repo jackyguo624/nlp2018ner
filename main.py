@@ -15,9 +15,9 @@ parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--cuda', default=True, action='store_false')
 args = parser.parse_args()
 
-
-logging.basicConfig(format='%(asctime)s: %(message)s', datefmt='%H:%M:%S', filename=os.path.join(args.out, 'train.log'), level=logging.INFO)
 os.makedirs(args.out, exist_ok=True)
+logging.basicConfig(format='%(asctime)s: %(message)s', datefmt='%H:%M:%S', filename=os.path.join(args.out, 'train.log'), level=logging.INFO)
+
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
