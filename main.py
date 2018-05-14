@@ -22,7 +22,7 @@ logging.basicConfig(format='%(asctime)s: %(message)s', datefmt='%H:%M:%S', filen
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 128
-HIDDEN_DIM = 32
+HIDDEN_DIM = 128
 tag_to_ix = {"O": 0, "B-treatment": 1, "B-problem": 2, "B-test": 3, "I-treatment": 4, "I-problem": 5, "I-test": 6, START_TAG: 7, STOP_TAG: 8}
 ix_to_tag = {0 : "O", 1 : "B-treatment", 2: "B-problem",  3: "B-test", 4 : "I-treatment", 5: "I-problem", 6 : "I-test", 7: START_TAG, 8: STOP_TAG}
 training_data = Dataloader('../data/ner/train.eval').data
