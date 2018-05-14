@@ -25,8 +25,8 @@ EMBEDDING_DIM = 5
 HIDDEN_DIM = 4
 tag_to_ix = {"O": 0, "B-treatment": 1, "B-problem": 2, "B-test": 3, "I-treatment": 4, "I-problem": 5, "I-test": 6, START_TAG: 7, STOP_TAG: 8}
 
-training_data = Dataloader('../data/net/train.eval').data
-dev_data = Dataloader('../data/net/dev.eval').data
+training_data = Dataloader('../data/ner/train.eval').data
+dev_data = Dataloader('../data/ner/dev.eval').data
 
 word_to_ix = {}
 for sentence, tags in training_data+dev_data:
