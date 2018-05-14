@@ -10,21 +10,21 @@ import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--out', type=str, default='exp/lr1e-3')
-parser.add_argument('--log-interval', type=int, default=10)
+parser.add_argument('--log-interval', type=int, default=100)
 parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--cuda', default=True, action='store_false')
 args = parser.parse_args()
 
 os.makedirs(args.out, exist_ok=True)
 logging.basicConfig(format='%(asctime)s: %(message)s', datefmt='%H:%M:%S', filename=os.path.join(args.out, 'train.log'), level=logging.INFO)
-
+#logger_decode = logging.getLogger('decodelog', f)
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
-EMBEDDING_DIM = 5
-HIDDEN_DIM = 4
+EMBEDDING_DIM = 128
+HIDDEN_DIM = 32
 tag_to_ix = {"O": 0, "B-treatment": 1, "B-problem": 2, "B-test": 3, "I-treatment": 4, "I-problem": 5, "I-test": 6, START_TAG: 7, STOP_TAG: 8}
-
+ix_to_tag = {0 : "O", 1 : "B-treatment", 2: "B-problem",  3: "B-test", 4 : "I-treatment", 5: "I-problem", 6 : "I-test", 7: START_TAG, 8: STOP_TAG}
 training_data = Dataloader('../data/ner/train.eval').data
 dev_data = Dataloader('../data/ner/dev.eval').data
 
@@ -38,7 +38,7 @@ for sentence, tags in training_data+dev_data:
 lr = args.lr
 model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
 optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=1e-4)
-model.cuda()
+if args.cuda: model.cuda()
 
 
 # train
@@ -68,7 +68,8 @@ for epoch in range(
         # Step 2. Get our inputs ready for the network, that is,
         # turn them into Tensors of word indices.
         sentence_in = prepare_sequence(sentence, word_to_ix)
-        targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long).cuda()
+        targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
+        if args.cuda: sentence_in.cuda();targets.cuda()
 
         # Step 3. Run our forward pass.
         loss = model.neg_log_likelihood(sentence_in, targets)
@@ -85,7 +86,13 @@ for epoch in range(
     model.eval()
     for sentence, tags in dev_data:
         sentence_in = prepare_sequence(sentence, word_to_ix)
-        targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long).cuda()
+        targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
+        precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
+
+        #print(sentence)
+        #print(ix_to_tag[x] for x in model(precheck_sent))
+
+        if args.cuda: sentence_in.cuda(); targets.cuda()
 
         # Step 3. Run our forward pass.
         cvloss = model.neg_log_likelihood(sentence_in, targets)
@@ -97,10 +104,11 @@ for epoch in range(
         torch.save(model.state_dict(), best_model)
     else:
         torch.save(model.state_dict(), '{}/params_epoch{:02d}_tr{:.2f}_cv{:.2f}_rejected'.format(args.out, epoch, trainloss, tokenAcc.getAll()))
-        model.load_state_dict(torch.load(best_model)).cuda()
-        if args.schedule:
-            lr /= 2
-            adjust_learning_rate(optimizer, lr)
+        model.load_state_dict(torch.load(best_model))
+        if args.cuda: model.cuda()
+
+        lr /= 2
+        adjust_learning_rate(optimizer, lr)
 
 # Check predictions after training
 with torch.no_grad():

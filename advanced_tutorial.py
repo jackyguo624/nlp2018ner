@@ -5,7 +5,7 @@ import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.optim as optim
-
+import pdb
 torch.manual_seed(1)
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
@@ -21,7 +21,7 @@ def argmax(vec):
 
 def prepare_sequence(seq, to_ix):
     idxs = [to_ix[w] for w in seq]
-    return torch.tensor(idxs, dtype=torch.long).cuda()
+    return torch.tensor(idxs, dtype=torch.long)
 
 
 # Compute log sum exp in a numerically stable way for the forward algorithm
@@ -101,6 +101,7 @@ class BiLSTM_CRF(nn.Module):
 
     def _get_lstm_features(self, sentence):
         self.hidden = self.init_hidden()
+        #pdb.set_trace()
         embeds = self.word_embeds(sentence).view(len(sentence), 1, -1)
         lstm_out, self.hidden = self.lstm(embeds, self.hidden)
         lstm_out = lstm_out.view(len(sentence), self.hidden_dim)
@@ -162,6 +163,7 @@ class BiLSTM_CRF(nn.Module):
         return path_score, best_path
 
     def neg_log_likelihood(self, sentence, tags):
+
         feats = self._get_lstm_features(sentence)
         forward_score = self._forward_alg(feats)
         gold_score = self._score_sentence(feats, tags)

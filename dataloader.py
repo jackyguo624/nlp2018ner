@@ -11,13 +11,13 @@ class Dataloader:
         words, tags = [], []
         with open(self.dataf, "r") as f:
             for line in f:
-                print(line)
                 if line.strip("\n") == "":
-                    self.data.append((words, tags))
+                    if len(words) != 0:
+                        self.data.append((words, tags))
                     words, tags = [], []
                 else:
                     words.append(line.split()[0]); tags.append(line.split()[1])
-            if words != ():
+            if len(words) != 0:
                 self.data.append((words, tags))
 
 
