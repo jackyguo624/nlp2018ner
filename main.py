@@ -112,6 +112,9 @@ for epoch in range(
         if args.cuda: model.cuda()
 
         lr /= 2
+        if lr < 1e-8:
+            print('lr < 1e-8 stop train')
+            break
         adjust_learning_rate(optimizer, lr)
 
 # Check predictions after training
