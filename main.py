@@ -58,7 +58,7 @@ prev_loss = 1e9
 tokenAcc = TokenAcc()
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
 for epoch in range(
-        300):  # again, normally you would NOT do 300 epochs, it is toy data
+        30):  # again, normally you would NOT do 300 epochs, it is toy data
     model.train()
     for i, (sentence, tags) in enumerate(training_data):
         # Step 1. Remember that Pytorch accumulates gradients.
@@ -74,12 +74,14 @@ for epoch in range(
         # Step 3. Run our forward pass.
         loss = model.neg_log_likelihood(sentence_in, targets)
         tokenAcc.update(loss.data)
+        score, pretags = model(sentence_in)
+        tokenAcc.updatef1(pretags, targets)
         # Step 4. Compute the loss, gradients, and update the parameters by
         # calling optimizer.step()
         loss.backward()
         optimizer.step()
         if i % args.log_interval == 0 and i > 0:
-            logging.info('[Epoch %d Sample %d] loss %.2f' % (epoch, i, tokenAcc.get()))
+            logging.info('[Epoch %d Sample %d] loss %.2f f1acc: %.2f ' % (epoch, i, tokenAcc.get(), tokenAcc.getf1()))
 
     trainloss = tokenAcc.getAll()
     tokenAcc.reset()
@@ -97,7 +99,9 @@ for epoch in range(
         # Step 3. Run our forward pass.
         cvloss = model.neg_log_likelihood(sentence_in, targets)
         tokenAcc.update(cvloss)
-    logging.info('[Epoch %d trloss: %.2f cvloss: %.2f]' % (epoch, trainloss, tokenAcc.getAll()))
+        score, pretags = model(sentence_in)
+        tokenAcc.updatef1(pretags, targets)
+    logging.info('[Epoch %d trloss: %.2f cvloss: %.2f f1acc: %.2f ]' % (epoch, trainloss, tokenAcc.getAll(), tokenAcc.getf1()))
     if cvloss < prev_loss:
         prev_loss = cvloss
         best_model = '{}/params_epoch{:02d}_tr{:.2f}_cv{:.2f}'.format(args.out, epoch, trainloss, tokenAcc.getAll())
