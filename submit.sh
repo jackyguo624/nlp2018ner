@@ -8,8 +8,9 @@
 #SBATCH --mem=10G
 
 source activate pytorch0.4py3.6
-
-dir=exp/1e-2
+lr=1
+loss=--loss-viterbi
+dir=exp/${lr}${loss}
 rm $dir/train.log
 
-python main.py --lr 1e-2 --out $dir 
+python main.py --lr ${lr} --out $dir --cuda ${loss}

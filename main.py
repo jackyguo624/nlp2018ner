@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--out', type=str, default='exp/lr1e-3')
 parser.add_argument('--log-interval', type=int, default=100)
 parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('--loss-viterbi', default=False, action='store_true')
 parser.add_argument('--cuda', default=True, action='store_false')
 args = parser.parse_args()
 
@@ -57,8 +58,7 @@ def adjust_learning_rate(optimizer, lr):
 prev_loss = 1e9
 tokenAcc = TokenAcc()
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
-for epoch in range(
-        30):  # again, normally you would NOT do 300 epochs, it is toy data
+for epoch in range(30):  # again, normally you would NOT do 300 epochs, it is toy data
     model.train()
     for i, (sentence, tags) in enumerate(training_data):
         # Step 1. Remember that Pytorch accumulates gradients.
@@ -72,7 +72,11 @@ for epoch in range(
         if args.cuda: sentence_in.cuda();targets.cuda()
 
         # Step 3. Run our forward pass.
-        loss = model.neg_log_likelihood(sentence_in, targets)
+        if args.loss_viterbi:
+            loss = model.loss_on_viterbi_golden(sentence_in, targets)
+        else:
+            loss = model.neg_log_likelihood(sentence_in, targets)
+
         tokenAcc.update(loss.data)
         score, pretags = model(sentence_in)
         tokenAcc.updatef1(pretags, targets)
@@ -86,11 +90,10 @@ for epoch in range(
     trainloss = tokenAcc.getAll()
     tokenAcc.reset()
     model.eval()
+    dumpfile = open('{}/epoch{:02d}_stat.txt' .format(args.out, epoch), "w")
     for sentence, tags in dev_data:
         sentence_in = prepare_sequence(sentence, word_to_ix)
         targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
-        precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-
         #print(sentence)
         #print(ix_to_tag[x] for x in model(precheck_sent))
 
@@ -100,8 +103,12 @@ for epoch in range(
         cvloss = model.neg_log_likelihood(sentence_in, targets)
         tokenAcc.update(cvloss)
         score, pretags = model(sentence_in)
+        for triple in zip(sentence, [ix_to_tag[int(x)] for x in targets],[ix_to_tag[int(x)] for x in pretags]):
+            dumpfile.write("%s %s %s \n" % (triple[0], triple[1], triple[2]))
+        dumpfile.write("\n")
         tokenAcc.updatef1(pretags, targets)
-    logging.info('[Epoch %d trloss: %.2f cvloss: %.2f f1acc: %.2f ]' % (epoch, trainloss, tokenAcc.getAll(), tokenAcc.getf1()))
+    dumpfile.close()
+    logging.info('[Epoch %d trloss: %.2f cvloss: %.2f f1acc: %.2f lr=%.2e]' % (epoch, trainloss, tokenAcc.getAll(), tokenAcc.getf1(), lr))
     if cvloss < prev_loss:
         prev_loss = cvloss
         best_model = '{}/params_epoch{:02d}_tr{:.2f}_cv{:.2f}'.format(args.out, epoch, trainloss, tokenAcc.getAll())

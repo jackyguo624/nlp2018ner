@@ -177,3 +177,8 @@ class BiLSTM_CRF(nn.Module):
         score, tag_seq = self._viterbi_decode(lstm_feats)
         return score, tag_seq
 
+    def loss_on_viterbi_golden(self, sentence, tags):
+        feats = self._get_lstm_features(sentence)
+        score, tag_seq = self._viterbi_decode(feats)
+        gold_score = self._score_sentence(feats, tags)
+        return score - gold_score
